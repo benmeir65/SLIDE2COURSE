@@ -16,7 +16,7 @@ export function HeroSection() {
           {/* Headline */}
           <h1 className="max-w-4xl text-4xl font-extrabold tracking-tight text-foreground md:text-5xl lg:text-6xl">
             <span className="block leading-tight">הפכו את המצגות שלכם</span>
-            <span className="mt-3 block leading-tight text-primary">
+            <span className="mt-3 block leading-tight text-cyan-500">
               לקורסים אינטראקטיביים
             </span>
           </h1>
