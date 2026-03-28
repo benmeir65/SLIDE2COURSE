@@ -32,25 +32,52 @@ export async function parsePPTX(file: File): Promise<ParsedPresentation> {
   const slides: SlideContent[] = []
   const images: Map<string, { data: string; contentType: string }> = new Map()
   
-  // Extract images from ppt/media folder
+  // Extract images from ppt/media folder (skip very large images to avoid memory issues)
   const mediaFiles = Object.keys(contents.files).filter(name => 
     name.startsWith('ppt/media/') && !contents.files[name].dir
   )
   
+  console.log('[v0] Media files found:', mediaFiles.length)
+  
   for (const mediaPath of mediaFiles) {
-    const mediaFile = contents.files[mediaPath]
-    const data = await mediaFile.async('base64')
-    const extension = mediaPath.split('.').pop()?.toLowerCase() || 'png'
-    const contentType = extension === 'jpg' || extension === 'jpeg' 
-      ? 'image/jpeg' 
-      : extension === 'png' 
-      ? 'image/png' 
-      : extension === 'gif'
-      ? 'image/gif'
-      : 'image/png'
-    
-    const fileName = mediaPath.split('/').pop() || ''
-    images.set(fileName, { data: `data:${contentType};base64,${data}`, contentType })
+    try {
+      const mediaFile = contents.files[mediaPath]
+      
+      // Get uncompressed size to check if image is too large
+      const fileData = await mediaFile.async('uint8array')
+      const fileSizeKB = fileData.length / 1024
+      
+      console.log('[v0] Processing media:', mediaPath, 'size:', fileSizeKB.toFixed(1), 'KB')
+      
+      // Skip images larger than 500KB to avoid memory issues
+      if (fileSizeKB > 500) {
+        console.log('[v0] Skipping large image:', mediaPath)
+        continue
+      }
+      
+      // Convert to base64
+      let binary = ''
+      const bytes = fileData
+      const len = bytes.byteLength
+      for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i])
+      }
+      const data = btoa(binary)
+      
+      const extension = mediaPath.split('.').pop()?.toLowerCase() || 'png'
+      const contentType = extension === 'jpg' || extension === 'jpeg' 
+        ? 'image/jpeg' 
+        : extension === 'png' 
+        ? 'image/png' 
+        : extension === 'gif'
+        ? 'image/gif'
+        : 'image/png'
+      
+      const fileName = mediaPath.split('/').pop() || ''
+      images.set(fileName, { data: `data:${contentType};base64,${data}`, contentType })
+    } catch (imgError) {
+      console.error('[v0] Error processing image:', mediaPath, imgError)
+    }
   }
   
   // Find all slide XML files
