@@ -30,19 +30,15 @@ function UploadIllustration() {
 function SlidesIllustration() {
   return (
     <div className="mt-4 flex w-full flex-col items-center gap-2">
-      {/* Regular slide 1 - square */}
-      <div className="aspect-square w-16 rounded border border-border bg-muted" />
-      {/* Yellow title slide - square with text */}
-      <div className="flex aspect-square w-16 items-center justify-center rounded bg-amber-400">
-        <span className="text-[8px] font-bold text-amber-900">שם היחידה</span>
+      {/* Yellow title slide - 16:9 aspect ratio */}
+      <div className="flex aspect-video w-full items-center justify-center rounded bg-amber-400">
+        <span className="text-[10px] font-bold text-amber-900">שם היחידה</span>
       </div>
-      {/* Regular slide 3 - square */}
-      <div className="aspect-square w-16 rounded border border-border bg-muted" />
-      {/* Question slide - square with text above */}
-      <div className="flex flex-col items-center gap-1">
-        <span className="text-[8px] text-primary/70">שאלה לפי תבנית</span>
-        <div className="flex aspect-square w-16 items-center justify-center rounded border border-dashed border-primary/40 bg-primary/10">
-          <span className="text-lg text-primary">{'?'}</span>
+      {/* Question slide - 16:9 with text above */}
+      <div className="flex w-full flex-col items-center gap-1">
+        <span className="text-[9px] text-primary/70">שאלה לפי תבנית</span>
+        <div className="flex aspect-video w-full items-center justify-center rounded border border-dashed border-primary/40 bg-primary/10">
+          <span className="text-xl text-primary">{'?'}</span>
         </div>
       </div>
     </div>
