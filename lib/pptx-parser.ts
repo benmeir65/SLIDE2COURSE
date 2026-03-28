@@ -237,24 +237,23 @@ function parseSlideXML(
 export function convertToHTML(presentation: ParsedPresentation): string {
   const { slides, title } = presentation
   
-  // Group slides by yellow slides (chapters)
+  // Group slides by yellow slides (chapters) - ONLY yellow slides become chapters
   const chapters: { title: string; slides: SlideContent[] }[] = []
   let currentChapter: { title: string; slides: SlideContent[] } | null = null
   
   for (const slide of slides) {
     if (slide.isYellowSlide) {
+      // Yellow slide = new chapter
       if (currentChapter) {
         chapters.push(currentChapter)
       }
       currentChapter = { title: slide.title, slides: [] }
     } else if (currentChapter) {
+      // Non-yellow slide goes into current chapter
       currentChapter.slides.push(slide)
     } else {
-      // Slides before first yellow slide
-      if (!currentChapter) {
-        currentChapter = { title: slide.title || 'מבוא', slides: [] }
-      }
-      currentChapter.slides.push(slide)
+      // Slides before first yellow slide - create a default chapter
+      currentChapter = { title: title || 'מבוא', slides: [slide] }
     }
   }
   
@@ -440,15 +439,6 @@ export function convertToHTML(presentation: ParsedPresentation): string {
       ${chapters.map((chapter, index) => `
         <div class="nav-chapter">
           <a href="#chapter-${index + 1}" class="nav-chapter-title">${escapeHtml(chapter.title)}</a>
-          ${chapter.slides.length > 0 ? `
-            <div class="nav-subchapters">
-              ${chapter.slides.map((slide, slideIndex) => `
-                <a href="#chapter-${index + 1}-slide-${slideIndex + 1}" class="nav-subchapter">
-                  ${escapeHtml(slide.title || `שקופית ${slide.slideNumber}`)}
-                </a>
-              `).join('')}
-            </div>
-          ` : ''}
         </div>
       `).join('')}
     </nav>
