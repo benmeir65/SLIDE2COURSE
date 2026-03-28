@@ -8,11 +8,20 @@ export function Logo({ size = 36 }: { size?: number }) {
       xmlns="http://www.w3.org/2000/svg"
     >
       {/* Number 2 - main central element acting as arrow/transition */}
-      {/* Curved top section of the 2 */}
+      {/* Curved top section of the 2 with arrow tip at start */}
       <path
         d="M8 14C8 8 13 4 20 4C27 4 32 8 32 14C32 19 28 23 22 26L8 38"
-        stroke="hsl(195, 90%, 45%)"
+        stroke="#1a1a1a"
         strokeWidth="4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      {/* Arrow head at the top of the curved section */}
+      <path
+        d="M16 8L20 4L24 8"
+        stroke="#1a1a1a"
+        strokeWidth="3"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
@@ -20,7 +29,7 @@ export function Logo({ size = 36 }: { size?: number }) {
       {/* Bottom horizontal line of 2 */}
       <path
         d="M8 38H32"
-        stroke="hsl(195, 90%, 45%)"
+        stroke="#1a1a1a"
         strokeWidth="4"
         strokeLinecap="round"
         fill="none"
