@@ -329,7 +329,7 @@ export const templateInstructions = [
 export const navLinks = [
   { href: "/", label: "דף הבית" },
   { href: "/converter", label: "יצירת קורס" },
-  { href: "/templates", label: "מדריך תבניות" },
+  { href: "/templates", label: "איך ליצור מצגת שתומר לקורס" },
   { href: "/teacher-register", label: "רישום מורה" },
   { href: "/contact", label: "צור קשר" },
 ]
