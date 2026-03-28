@@ -21,13 +21,28 @@ export interface SlideElement {
   imageData?: { data: string; contentType: string }
 }
 
+export interface TableCell {
+  content: string
+  isBold: boolean
+}
+
+export interface TableData {
+  rows: TableCell[][]
+}
+
+export interface TextWithFormatting {
+  content: string
+  isBold: boolean
+}
+
 export interface SlideContent {
   slideNumber: number
   title: string
-  texts: string[]
-  bulletPoints: string[][]
+  texts: TextWithFormatting[]
+  bulletPoints: TextWithFormatting[][]
   images: { data: string; contentType: string }[]
   elements: SlideElement[]
+  tables: TableData[]
   isYellowSlide: boolean
 }
 
@@ -177,9 +192,10 @@ function parseSlideXML(
   slideNumber: number,
   images: Map<string, { data: string; contentType: string }>
 ): SlideContent {
-  const texts: string[] = []
-  const bulletPoints: string[][] = []
+  const texts: TextWithFormatting[] = []
+  const bulletPoints: TextWithFormatting[][] = []
   const elements: SlideElement[] = []
+  const tables: TableData[] = []
   let title = ''
   let isYellowSlide = false
   const slideImages: { data: string; contentType: string }[] = []
@@ -364,12 +380,17 @@ function parseSlideXML(
   }
   
   // Process remaining paragraphs
-  let currentBulletGroup: string[] = []
+  let currentBulletGroup: TextWithFormatting[] = []
   let currentBulletLevel = 0
   
   for (const para of allParagraphs) {
     // Skip the title paragraph
     if (para.text === title && para === titleParagraph) continue
+    
+    const textWithFormatting: TextWithFormatting = {
+      content: para.text,
+      isBold: para.textProperties.isBold
+    }
     
     if (para.isBullet) {
       // Handle nested bullet points
@@ -378,7 +399,7 @@ function parseSlideXML(
         currentBulletGroup = []
       }
       
-      currentBulletGroup.push(para.text)
+      currentBulletGroup.push(textWithFormatting)
       currentBulletLevel = para.bulletLevel
       
       // Add bullet as an element
@@ -395,8 +416,8 @@ function parseSlideXML(
         bulletPoints.push([...currentBulletGroup])
         currentBulletGroup = []
       }
-      // Add as regular text
-      texts.push(para.text)
+      // Add as regular text with formatting
+      texts.push(textWithFormatting)
       
       // Add text as an element
       elements.push({
@@ -411,6 +432,59 @@ function parseSlideXML(
   // Don't forget last bullet group
   if (currentBulletGroup.length > 0) {
     bulletPoints.push(currentBulletGroup)
+  }
+  
+  // Parse tables from the slide
+  const tableRegex = /<a:tbl>([\s\S]*?)<\/a:tbl>/g
+  let tableMatch
+  
+  while ((tableMatch = tableRegex.exec(xml)) !== null) {
+    const tableContent = tableMatch[1]
+    const tableData: TableData = { rows: [] }
+    
+    // Parse rows
+    const rowRegex = /<a:tr[^>]*>([\s\S]*?)<\/a:tr>/g
+    let rowMatch
+    
+    while ((rowMatch = rowRegex.exec(tableContent)) !== null) {
+      const rowContent = rowMatch[1]
+      const row: TableCell[] = []
+      
+      // Parse cells
+      const cellRegex = /<a:tc>([\s\S]*?)<\/a:tc>/g
+      let cellMatch
+      
+      while ((cellMatch = cellRegex.exec(rowContent)) !== null) {
+        const cellContent = cellMatch[1]
+        
+        // Extract text from cell
+        const cellTexts: string[] = []
+        const cellTextRegex = /<a:t>([^<]*)<\/a:t>/g
+        let cellTextMatch
+        
+        while ((cellTextMatch = cellTextRegex.exec(cellContent)) !== null) {
+          if (cellTextMatch[1]) {
+            cellTexts.push(cellTextMatch[1])
+          }
+        }
+        
+        // Check for bold in cell
+        const isBold = /<a:rPr[^>]*b="1"/.test(cellContent)
+        
+        row.push({
+          content: cellTexts.join('').trim(),
+          isBold
+        })
+      }
+      
+      if (row.length > 0) {
+        tableData.rows.push(row)
+      }
+    }
+    
+    if (tableData.rows.length > 0) {
+      tables.push(tableData)
+    }
   }
   
   // Parse images with improved positioning
@@ -466,6 +540,7 @@ function parseSlideXML(
     bulletPoints,
     images: slideImages,
     elements,
+    tables,
     isYellowSlide
   }
 }
@@ -711,6 +786,37 @@ export function convertToHTML(presentation: ParsedPresentation): string {
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
     
+    .slide-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    }
+    
+    .slide-table th,
+    .slide-table td {
+      padding: 12px 16px;
+      text-align: right;
+      border: 1px solid #e0e0e0;
+    }
+    
+    .slide-table th {
+      background: #1a1a2e;
+      color: #fff;
+      font-weight: 600;
+    }
+    
+    .slide-table tr:nth-child(even) {
+      background: #f8f9fa;
+    }
+    
+    .slide-table tr:hover {
+      background: #e8f4fc;
+    }
+    
     /* Responsive */
     @media (max-width: 768px) {
       .nav-sidebar {
@@ -781,13 +887,38 @@ export function convertToHTML(presentation: ParsedPresentation): string {
                 }).join('')}
               </div>
               
-              <!-- Fallback traditional layout -->
+              <!-- Content in order: Title, Text, Bullets, Tables, Images -->
               <div class="slide-content" style="margin-top: 20px;">
-                ${slide.texts.map(text => `<p>${escapeHtml(text)}</p>`).join('')}
+                ${slide.texts.map(textItem => {
+                  const content = escapeHtml(textItem.content)
+                  return textItem.isBold 
+                    ? `<p><strong>${content}</strong></p>` 
+                    : `<p>${content}</p>`
+                }).join('')}
                 ${slide.bulletPoints.map(group => `
                   <ul class="bullet-list">
-                    ${group.map(item => `<li>${escapeHtml(item)}</li>`).join('')}
+                    ${group.map(item => {
+                      const content = escapeHtml(item.content)
+                      return item.isBold 
+                        ? `<li><strong>${content}</strong></li>` 
+                        : `<li>${content}</li>`
+                    }).join('')}
                   </ul>
+                `).join('')}
+                ${slide.tables.map(table => `
+                  <table class="slide-table">
+                    ${table.rows.map((row, rowIndex) => `
+                      <tr>
+                        ${row.map(cell => {
+                          const content = escapeHtml(cell.content)
+                          const cellTag = rowIndex === 0 ? 'th' : 'td'
+                          return cell.isBold 
+                            ? `<${cellTag}><strong>${content}</strong></${cellTag}>` 
+                            : `<${cellTag}>${content}</${cellTag}>`
+                        }).join('')}
+                      </tr>
+                    `).join('')}
+                  </table>
                 `).join('')}
                 ${slide.images.map(img => `
                   <img src="${img.data}" alt="תמונה מהמצגת" class="slide-image" />
@@ -813,3 +944,5 @@ function escapeHtml(text: string): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;')
 }
+
+
