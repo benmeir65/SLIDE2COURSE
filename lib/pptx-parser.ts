@@ -52,80 +52,64 @@ export interface ParsedPresentation {
 }
 
 // Parse PPTX file and extract content
-export async function parsePPTX(file: File): Promise<ParsedPresentation> {
-  console.log('[v0] Starting PPTX parsing for file:', file.name, 'size:', file.size)
+export async function parsePPTX(file: File, skipImages: boolean = false): Promise<ParsedPresentation> {
+  const fileSizeMB = file.size / 1024 / 1024
+  
+  // For very large files (>20MB), skip images to avoid memory issues
+  const shouldSkipImages = skipImages || fileSizeMB > 20
   
   const zip = new JSZip()
   let contents
   
   try {
     contents = await zip.loadAsync(file)
-    console.log('[v0] ZIP loaded successfully. Files found:', Object.keys(contents.files).length)
   } catch (zipError) {
-    console.error('[v0] Failed to load ZIP:', zipError)
-    throw new Error('Failed to load PPTX file as ZIP')
+    throw new Error('לא ניתן לפתוח את קובץ ה-PPTX. נא לוודא שהקובץ תקין.')
   }
   
   const slides: SlideContent[] = []
   const images: Map<string, { data: string; contentType: string }> = new Map()
   
-  // Extract images from ppt/media folder with improved handling
-  const mediaFiles = Object.keys(contents.files).filter(name => 
-    name.startsWith('ppt/media/') && !contents.files[name].dir
-  )
-  
-  console.log('[v0] Media files found:', mediaFiles.length)
-  
-  for (const mediaPath of mediaFiles) {
-    try {
-      const mediaFile = contents.files[mediaPath]
-      
-      // Get uncompressed size to check if image is too large
-      const fileData = await mediaFile.async('uint8array')
-      const fileSizeKB = fileData.length / 1024
-      
-      console.log('[v0] Processing media:', mediaPath, 'size:', fileSizeKB.toFixed(1), 'KB')
-      
-      // More flexible image size handling - try to compress or resize large images
-      if (fileSizeKB > 1000) {
-        console.log('[v0] Skipping very large image (>1MB):', mediaPath)
-        continue
-      }
-      
-      // More efficient base64 conversion using built-in methods when possible
-      let data: string
+  // Only process images if not skipping
+  if (!shouldSkipImages) {
+    const mediaFiles = Object.keys(contents.files).filter(name => 
+      name.startsWith('ppt/media/') && !contents.files[name].dir
+    )
+    
+    // Limit number of images to process
+    const maxImages = 30
+    const imagesToProcess = mediaFiles.slice(0, maxImages)
+    
+    for (const mediaPath of imagesToProcess) {
       try {
-        // Use FileReader-like approach for better memory efficiency
-        const blob = new Blob([fileData])
-        const reader = new FileReader()
+        const mediaFile = contents.files[mediaPath]
+        const fileData = await mediaFile.async('uint8array')
+        const fileSizeKB = fileData.length / 1024
         
-        data = await new Promise<string>((resolve, reject) => {
+        // Skip images larger than 300KB
+        if (fileSizeKB > 300) {
+          continue
+        }
+        
+        // Efficient base64 conversion
+        const blob = new Blob([fileData])
+        const data = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader()
           reader.onload = () => {
             const result = reader.result as string
-            resolve(result.split(',')[1]) // Remove data URL prefix
+            resolve(result.split(',')[1])
           }
           reader.onerror = reject
           reader.readAsDataURL(blob)
         })
+        
+        const extension = mediaPath.split('.').pop()?.toLowerCase() || 'png'
+        const contentType = getImageContentType(extension)
+        const fileName = mediaPath.split('/').pop() || ''
+        images.set(fileName, { data: `data:${contentType};base64,${data}`, contentType })
       } catch {
-        // Fallback to manual conversion
-        let binary = ''
-        const bytes = fileData
-        const len = bytes.byteLength
-        for (let i = 0; i < len; i++) {
-          binary += String.fromCharCode(bytes[i])
-        }
-        data = btoa(binary)
+        // Continue with other images
       }
-      
-      const extension = mediaPath.split('.').pop()?.toLowerCase() || 'png'
-      const contentType = getImageContentType(extension)
-      
-      const fileName = mediaPath.split('/').pop() || ''
-      images.set(fileName, { data: `data:${contentType};base64,${data}`, contentType })
-    } catch (imgError) {
-      console.error('[v0] Error processing image:', mediaPath, imgError)
-      // Continue processing other images instead of failing completely
     }
   }
 
@@ -152,7 +136,6 @@ export async function parsePPTX(file: File): Promise<ParsedPresentation> {
   
   // Find all slide XML files
   const allFiles = Object.keys(contents.files)
-  console.log('[v0] All files in PPTX:', allFiles.slice(0, 20), '... total:', allFiles.length)
   
   const slideFiles = allFiles
     .filter(name => /^ppt\/slides\/slide\d+\.xml$/.test(name))
@@ -162,22 +145,30 @@ export async function parsePPTX(file: File): Promise<ParsedPresentation> {
       return numA - numB
     })
   
-  console.log('[v0] Slide files found:', slideFiles)
-  
   if (slideFiles.length === 0) {
-    console.error('[v0] No slide files found in PPTX')
-    throw new Error('No slides found in PPTX file')
+    throw new Error('לא נמצאו שקופיות בקובץ')
   }
   
   // Parse each slide
   for (let i = 0; i < slideFiles.length; i++) {
-    const slideFile = contents.files[slideFiles[i]]
-    console.log('[v0] Parsing slide:', slideFiles[i])
-    const xmlContent = await slideFile.async('string')
-    console.log('[v0] Slide XML length:', xmlContent.length)
-    const slideContent = parseSlideXML(xmlContent, i + 1, images)
-    console.log('[v0] Slide parsed:', slideContent.title, 'texts:', slideContent.texts.length)
-    slides.push(slideContent)
+    try {
+      const slideFile = contents.files[slideFiles[i]]
+      const xmlContent = await slideFile.async('string')
+      const slideContent = parseSlideXML(xmlContent, i + 1, images)
+      slides.push(slideContent)
+    } catch {
+      // If a slide fails, create an empty placeholder
+      slides.push({
+        slideNumber: i + 1,
+        title: `שקופית ${i + 1}`,
+        texts: [],
+        bulletPoints: [],
+        images: [],
+        elements: [],
+        tables: [],
+        isYellowSlide: false
+      })
+    }
   }
   
   // Determine presentation title from first yellow slide or first slide

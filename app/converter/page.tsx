@@ -13,6 +13,8 @@ export default function ConverterPage() {
   const [convertedHtml, setConvertedHtml] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [slideCount, setSlideCount] = useState<number>(0)
+  const [skipImages, setSkipImages] = useState(false)
+  const [progress, setProgress] = useState<string>("")
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -51,23 +53,33 @@ export default function ConverterPage() {
     
     setIsConverting(true)
     setError(null)
+    setProgress("מעבד את הקובץ...")
     
     try {
-      console.log('[v0] Starting conversion for file:', file.name, 'type:', file.type, 'size:', file.size)
+      // Check file size and suggest skipping images for large files
+      const fileSizeMB = file.size / 1024 / 1024
+      const shouldSkipImages = skipImages || fileSizeMB > 15
+      
+      if (shouldSkipImages && !skipImages) {
+        setProgress("קובץ גדול - מדלג על תמונות לביצועים טובים יותר...")
+      }
+      
+      setProgress("מחלץ תוכן מהמצגת...")
       
       // Parse the PPTX file
-      const presentation = await parsePPTX(file)
-      console.log('[v0] Parsing complete. Slides found:', presentation.slides.length)
+      const presentation = await parsePPTX(file, shouldSkipImages)
       setSlideCount(presentation.slides.length)
+      
+      setProgress("ממיר ל-HTML...")
       
       // Convert to HTML
       const html = convertToHTML(presentation)
-      console.log('[v0] HTML generated, length:', html.length)
       setConvertedHtml(html)
+      setProgress("")
     } catch (err) {
-      console.error('[v0] Conversion error:', err)
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      const errorMessage = err instanceof Error ? err.message : 'שגיאה לא ידועה'
       setError(`אירעה שגיאה בהמרת הקובץ: ${errorMessage}`)
+      setProgress("")
     } finally {
       setIsConverting(false)
     }
@@ -161,25 +173,40 @@ export default function ConverterPage() {
               </div>
             )}
 
-            {/* Convert Button */}
+            {/* Convert Options */}
             {file && !convertedHtml && (
-              <Button
-                className="mt-6 w-full"
-                size="lg"
-                onClick={handleConvert}
-                disabled={isConverting}
-              >
-                {isConverting ? (
-                  <>
-                    <Loader2 className="ml-2 h-5 w-5 animate-spin" />
-                    ממיר את המצגת...
-                  </>
-                ) : (
-                  <>
-                    המר לקורס HTML
-                  </>
+              <div className="mt-6 space-y-4">
+                {/* Skip images checkbox for large files */}
+                {file.size > 5 * 1024 * 1024 && (
+                  <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <input
+                      type="checkbox"
+                      checked={skipImages}
+                      onChange={(e) => setSkipImages(e.target.checked)}
+                      className="rounded border-gray-300"
+                    />
+                    דלג על תמונות (מומלץ לקבצים גדולים)
+                  </label>
                 )}
-              </Button>
+                
+                <Button
+                  className="w-full"
+                  size="lg"
+                  onClick={handleConvert}
+                  disabled={isConverting}
+                >
+                  {isConverting ? (
+                    <>
+                      <Loader2 className="ml-2 h-5 w-5 animate-spin" />
+                      {progress || "ממיר את המצגת..."}
+                    </>
+                  ) : (
+                    <>
+                      המר לקורס HTML
+                    </>
+                  )}
+                </Button>
+              </div>
             )}
 
             {/* Results */}
