@@ -3,14 +3,14 @@ export function Logo({ size = 36 }: { size?: number }) {
     <svg
       width={size}
       height={size}
-      viewBox="0 0 44 44"
+      viewBox="0 0 48 48"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Number 2 as the main shape with arrow at top */}
-      {/* The curved top of 2 with arrow tip */}
+      {/* Number 2 as the main shape - acts as arrow from slide to course */}
+      {/* The curved top of 2 */}
       <path
-        d="M12 14C12 9 16 5 22 5C28 5 32 9 32 14C32 18 29 21 25 23L12 33"
+        d="M14 16C14 10 18 6 24 6C30 6 34 10 34 16C34 20 31 23 27 25L14 35"
         stroke="hsl(195, 90%, 45%)"
         strokeWidth="3"
         strokeLinecap="round"
@@ -19,25 +19,26 @@ export function Logo({ size = 36 }: { size?: number }) {
       />
       {/* Bottom line of 2 */}
       <path
-        d="M12 33H32"
+        d="M14 35H34"
         stroke="hsl(195, 90%, 45%)"
         strokeWidth="3"
         strokeLinecap="round"
         fill="none"
       />
-      {/* Arrow at the top of the 2 - pointing up */}
+      {/* Arrow tip at the top of the curved 2 - pointing toward course */}
       <path
-        d="M18 8L22 4L26 8"
+        d="M20 9L24 5L28 9"
         stroke="hsl(175, 55%, 40%)"
         strokeWidth="2.5"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
       />
-      {/* Small presentation/slide icon at bottom left of 2 */}
+
+      {/* Presentation/slide icon - at bottom right, on the base line of 2, to the right */}
       <rect
-        x="4"
-        y="30"
+        x="36"
+        y="31"
         width="10"
         height="8"
         rx="1"
@@ -46,23 +47,24 @@ export function Logo({ size = 36 }: { size?: number }) {
         fill="white"
       />
       {/* Lines inside presentation */}
-      <line x1="6" y1="33" x2="12" y2="33" stroke="hsl(195, 50%, 75%)" strokeWidth="1" />
-      <line x1="6" y1="35" x2="10" y2="35" stroke="hsl(195, 50%, 75%)" strokeWidth="1" />
-      {/* Course/graduation cap icon at top right */}
+      <line x1="38" y1="34" x2="44" y2="34" stroke="hsl(195, 50%, 65%)" strokeWidth="1" />
+      <line x1="38" y1="36" x2="42" y2="36" stroke="hsl(195, 50%, 65%)" strokeWidth="1" />
+
+      {/* Course/graduation cap icon - below the top curve of 2, on the right */}
       <path
-        d="M34 10L40 13L34 16L28 13L34 10Z"
+        d="M38 16L44 19L38 22L32 19L38 16Z"
         fill="hsl(175, 55%, 40%)"
         stroke="hsl(175, 55%, 35%)"
         strokeWidth="0.5"
       />
       {/* Cap tassel */}
       <path
-        d="M40 13V17"
+        d="M44 19V23"
         stroke="hsl(175, 55%, 40%)"
         strokeWidth="1.2"
         strokeLinecap="round"
       />
-      <circle cx="40" cy="18" r="1" fill="hsl(175, 55%, 40%)" />
+      <circle cx="44" cy="24" r="1" fill="hsl(175, 55%, 40%)" />
     </svg>
   )
 }
