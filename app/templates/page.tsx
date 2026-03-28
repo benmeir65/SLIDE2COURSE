@@ -74,7 +74,7 @@ export default function TemplatesPage() {
               מדריך תבניות
             </Badge>
             <h1 className="text-balance text-3xl font-bold text-foreground md:text-4xl">
-              איך להכין מצגת שתומר לקורס
+              איך ליצור מצגת שתומר לקורס
             </h1>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-muted-foreground">
               העתיקו את התבניות הבאות ישירות לתוך המצגת שלכם - כל תבנית היא שקופית אחת
