@@ -34,12 +34,10 @@ function SlidesIllustration() {
       <div className="flex aspect-video w-full items-center justify-center rounded bg-amber-400">
         <span className="text-[10px] font-bold text-amber-900">שם היחידה</span>
       </div>
-      {/* Question slide - 16:9 with text above */}
-      <div className="flex w-full flex-col items-center gap-1">
+      {/* Question slide - 16:9 with text and question mark inside */}
+      <div className="flex aspect-video w-full flex-col items-center justify-center gap-1 rounded border border-dashed border-primary/40 bg-primary/10">
         <span className="text-[9px] text-primary/70">שאלה לפי תבנית</span>
-        <div className="flex aspect-video w-full items-center justify-center rounded border border-dashed border-primary/40 bg-primary/10">
-          <span className="text-xl text-primary">{'?'}</span>
-        </div>
+        <span className="text-3xl font-bold text-primary">{'?'}</span>
       </div>
     </div>
   )
