@@ -29,36 +29,28 @@ function UploadIllustration() {
 
 function SlidesIllustration() {
   return (
-    <div className="mt-4 flex w-full flex-col gap-1.5">
-      {/* Regular slide */}
-      <div className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5">
-        <div className="h-5 w-7 flex-shrink-0 rounded-sm bg-muted" />
-        <div className="flex flex-1 flex-col gap-0.5">
-          <div className="h-1.5 w-3/4 rounded bg-border/80" />
-          <div className="h-1 w-1/2 rounded bg-border/40" />
-        </div>
+    <div className="mt-4 flex w-full flex-col gap-2">
+      {/* Regular slide - square like presentation */}
+      <div className="flex items-center gap-2 rounded-md border border-border bg-card p-1.5">
+        <div className="aspect-[4/3] h-10 flex-shrink-0 rounded bg-muted" />
       </div>
       {/* Yellow title slide - full yellow background */}
-      <div className="flex items-center gap-1.5 rounded-md bg-amber-300 px-2 py-1.5">
-        <div className="flex h-5 w-7 flex-shrink-0 items-center justify-center rounded-sm bg-amber-400">
-          <span className="text-[6px] font-bold text-amber-900">{'כותרת'}</span>
+      <div className="flex items-center gap-2 rounded-md bg-amber-300 p-1.5">
+        <div className="flex aspect-[4/3] h-10 flex-shrink-0 items-center justify-center rounded bg-amber-400">
+          <span className="text-[7px] font-bold text-amber-900">{'כותרת'}</span>
         </div>
-        <span className="text-[9px] font-bold text-amber-900">שם היחידה</span>
+        <span className="text-[10px] font-bold text-amber-900">שם היחידה</span>
       </div>
-      {/* Regular slide */}
-      <div className="flex items-center gap-1.5 rounded-md border border-border bg-card px-2 py-1.5">
-        <div className="h-5 w-7 flex-shrink-0 rounded-sm bg-muted" />
-        <div className="flex flex-1 flex-col gap-0.5">
-          <div className="h-1.5 w-2/3 rounded bg-border/80" />
-          <div className="h-1 w-1/3 rounded bg-border/40" />
-        </div>
+      {/* Regular slide - square like presentation */}
+      <div className="flex items-center gap-2 rounded-md border border-border bg-card p-1.5">
+        <div className="aspect-[4/3] h-10 flex-shrink-0 rounded bg-muted" />
       </div>
       {/* Question slide */}
-      <div className="flex items-center gap-1.5 rounded-md border border-dashed border-primary/40 bg-primary/5 px-2 py-1.5">
-        <div className="flex h-5 w-7 flex-shrink-0 items-center justify-center rounded-sm bg-primary/15">
-          <span className="text-[8px] text-primary">{'?'}</span>
+      <div className="flex items-center gap-2 rounded-md border border-dashed border-primary/40 bg-primary/5 p-1.5">
+        <div className="flex aspect-[4/3] h-10 flex-shrink-0 items-center justify-center rounded bg-primary/15">
+          <span className="text-[10px] text-primary">{'?'}</span>
         </div>
-        <span className="text-[9px] text-primary/70">שאלה לפי תבנית</span>
+        <span className="text-[10px] text-primary/70">שאלה לפי תבנית</span>
       </div>
     </div>
   )
