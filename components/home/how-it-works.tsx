@@ -253,7 +253,7 @@ export function HowItWorks() {
               <h3 className="mb-3 text-xl font-bold text-foreground">
                 {step.title}
               </h3>
-              <p className="leading-relaxed text-muted-foreground">
+              <p className="whitespace-pre-line leading-relaxed text-muted-foreground">
                 {step.description}
               </p>
 
