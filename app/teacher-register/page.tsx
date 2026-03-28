@@ -14,7 +14,7 @@ import {
 import { GraduationCap, Globe, BookOpen, BarChart3, Users } from "lucide-react"
 
 export const metadata: Metadata = {
-  title: "רישום מורה | SlidesUp Learning",
+  title: "רישום מורה | SLIDE2COURSE",
   description: "הירשמו כמורה וקבלו גישה מלאה ליצירת קורסים וניהול כיתות",
 }
 

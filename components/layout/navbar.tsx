@@ -18,7 +18,7 @@ export function Navbar() {
         <Link href="/" className="flex items-center gap-2">
           <Logo size={36} />
           <span className="text-lg font-bold text-foreground">
-            SlidesUp Learning
+            SLIDE2COURSE
           </span>
         </Link>
 

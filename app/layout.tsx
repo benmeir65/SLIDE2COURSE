@@ -12,7 +12,7 @@ const heebo = Heebo({
 })
 
 export const metadata: Metadata = {
-  title: "SlidesUp Learning - המרת מצגות לקורסים אינטראקטיביים",
+  title: "SLIDE2COURSE - המרת מצגות לקורסים אינטראקטיביים",
   description:
     "פלטפורמה חינוכית להמרת מצגות לקורסים ווביים אינטראקטיביים עם מערכת ניהול למידה, בדיקות AI ועוד",
   icons: {

@@ -12,7 +12,7 @@ export function Footer() {
             <Link href="/" className="flex items-center gap-2">
               <Logo size={32} />
               <span className="text-base font-bold text-foreground">
-                SlidesUp Learning
+                SLIDE2COURSE
               </span>
             </Link>
             <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
@@ -115,7 +115,7 @@ export function Footer() {
         {/* Bottom */}
         <div className="mt-10 border-t border-border pt-6 text-center">
           <p className="text-xs text-muted-foreground">
-            {'2026 SlidesUp Learning. כל הזכויות שמורות.'}
+            {'2026 SLIDE2COURSE. כל הזכויות שמורות.'}
           </p>
         </div>
       </div>
