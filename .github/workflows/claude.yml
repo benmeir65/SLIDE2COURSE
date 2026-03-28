@@ -18,14 +18,15 @@ jobs:
       (github.event_name == 'issues' && contains(github.event.issue.body, '@claude')) ||
       (github.event_name == 'pull_request' && contains(github.event.pull_request.body, '@claude'))
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-      issues: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Run Claude Code Action
-        uses: anthropics/claude-code-action@beta
-        with:
+  permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+  
+steps:
+  - uses: actions/checkout@v4
+  - name: Run Claude Code Action
+   - uses: anthropics/claude-code-action@beta
+  - with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
