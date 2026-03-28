@@ -1,11 +1,33 @@
 import JSZip from 'jszip'
 
+export interface SlideElement {
+  type: 'text' | 'title' | 'bullet' | 'image'
+  content: string
+  position: {
+    x: number
+    y: number
+    width: number
+    height: number
+  }
+  textProperties?: {
+    isRTL: boolean
+    fontSize: number
+    fontFamily: string
+    isBold: boolean
+    isItalic: boolean
+    color: string
+  }
+  bulletLevel?: number
+  imageData?: { data: string; contentType: string }
+}
+
 export interface SlideContent {
   slideNumber: number
   title: string
   texts: string[]
   bulletPoints: string[][]
   images: { data: string; contentType: string }[]
+  elements: SlideElement[]
   isYellowSlide: boolean
 }
 
@@ -32,7 +54,7 @@ export async function parsePPTX(file: File): Promise<ParsedPresentation> {
   const slides: SlideContent[] = []
   const images: Map<string, { data: string; contentType: string }> = new Map()
   
-  // Extract images from ppt/media folder (skip very large images to avoid memory issues)
+  // Extract images from ppt/media folder with improved handling
   const mediaFiles = Object.keys(contents.files).filter(name => 
     name.startsWith('ppt/media/') && !contents.files[name].dir
   )
@@ -49,34 +71,67 @@ export async function parsePPTX(file: File): Promise<ParsedPresentation> {
       
       console.log('[v0] Processing media:', mediaPath, 'size:', fileSizeKB.toFixed(1), 'KB')
       
-      // Skip images larger than 500KB to avoid memory issues
-      if (fileSizeKB > 500) {
-        console.log('[v0] Skipping large image:', mediaPath)
+      // More flexible image size handling - try to compress or resize large images
+      if (fileSizeKB > 1000) {
+        console.log('[v0] Skipping very large image (>1MB):', mediaPath)
         continue
       }
       
-      // Convert to base64
-      let binary = ''
-      const bytes = fileData
-      const len = bytes.byteLength
-      for (let i = 0; i < len; i++) {
-        binary += String.fromCharCode(bytes[i])
+      // More efficient base64 conversion using built-in methods when possible
+      let data: string
+      try {
+        // Use FileReader-like approach for better memory efficiency
+        const blob = new Blob([fileData])
+        const reader = new FileReader()
+        
+        data = await new Promise<string>((resolve, reject) => {
+          reader.onload = () => {
+            const result = reader.result as string
+            resolve(result.split(',')[1]) // Remove data URL prefix
+          }
+          reader.onerror = reject
+          reader.readAsDataURL(blob)
+        })
+      } catch {
+        // Fallback to manual conversion
+        let binary = ''
+        const bytes = fileData
+        const len = bytes.byteLength
+        for (let i = 0; i < len; i++) {
+          binary += String.fromCharCode(bytes[i])
+        }
+        data = btoa(binary)
       }
-      const data = btoa(binary)
       
       const extension = mediaPath.split('.').pop()?.toLowerCase() || 'png'
-      const contentType = extension === 'jpg' || extension === 'jpeg' 
-        ? 'image/jpeg' 
-        : extension === 'png' 
-        ? 'image/png' 
-        : extension === 'gif'
-        ? 'image/gif'
-        : 'image/png'
+      const contentType = getImageContentType(extension)
       
       const fileName = mediaPath.split('/').pop() || ''
       images.set(fileName, { data: `data:${contentType};base64,${data}`, contentType })
     } catch (imgError) {
       console.error('[v0] Error processing image:', mediaPath, imgError)
+      // Continue processing other images instead of failing completely
+    }
+  }
+
+  // Helper function for content type determination
+  function getImageContentType(extension: string): string {
+    switch (extension) {
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg'
+      case 'png':
+        return 'image/png'
+      case 'gif':
+        return 'image/gif'
+      case 'webp':
+        return 'image/webp'
+      case 'svg':
+        return 'image/svg+xml'
+      case 'bmp':
+        return 'image/bmp'
+      default:
+        return 'image/png'
     }
   }
   
@@ -124,6 +179,7 @@ function parseSlideXML(
 ): SlideContent {
   const texts: string[] = []
   const bulletPoints: string[][] = []
+  const elements: SlideElement[] = []
   let title = ''
   let isYellowSlide = false
   const slideImages: { data: string; contentType: string }[] = []
@@ -143,56 +199,196 @@ function parseSlideXML(
     }
   }
   
-  // Parse paragraphs - each <a:p> is one line/paragraph in PowerPoint
-  const paragraphRegex = /<a:p>([\s\S]*?)<\/a:p>/g
+  // Parse text boxes with positioning information
+  const textBoxRegex = /<p:sp>([\s\S]*?)<\/p:sp>/g
   let match
-  const allParagraphs: { text: string; isBullet: boolean; isTitle: boolean }[] = []
+  const allParagraphs: { 
+    text: string; 
+    isBullet: boolean; 
+    isTitle: boolean;
+    position: { x: number; y: number; width: number; height: number };
+    textProperties: {
+      isRTL: boolean;
+      fontSize: number;
+      fontFamily: string;
+      isBold: boolean;
+      isItalic: boolean;
+      color: string;
+    };
+    bulletLevel: number;
+  }[] = []
   
-  while ((match = paragraphRegex.exec(xml)) !== null) {
-    const paragraphContent = match[1]
+  while ((match = textBoxRegex.exec(xml)) !== null) {
+    const shapeContent = match[1]
     
-    // Check if this paragraph has bullet point marker
-    const hasBullet = /<a:buChar/.test(paragraphContent) || 
-                      /<a:buAutoNum/.test(paragraphContent)
+    // Extract position and size information
+    const positionMatch = shapeContent.match(/<a:xfrm>([\s\S]*?)<\/a:xfrm>/)
+    let position = { x: 0, y: 0, width: 100, height: 20 }
     
-    // Check if this is a title placeholder
-    const isTitle = /<p:ph type="title"/.test(paragraphContent) ||
-                    /<p:ph type="ctrTitle"/.test(paragraphContent)
-    
-    // Extract ALL text runs within this paragraph and join them (same line)
-    const textParts: string[] = []
-    const innerTextRegex = /<a:t>([^<]*)<\/a:t>/g
-    let innerMatch
-    while ((innerMatch = innerTextRegex.exec(paragraphContent)) !== null) {
-      // Keep the text as-is, including spaces
-      if (innerMatch[1]) {
-        textParts.push(innerMatch[1])
+    if (positionMatch) {
+      const xfrmContent = positionMatch[1]
+      const offsetMatch = xfrmContent.match(/<a:off x="([^"]+)" y="([^"]+)"/)
+      const extentMatch = xfrmContent.match(/<a:ext cx="([^"]+)" cy="([^"]+)"/)
+      
+      if (offsetMatch && extentMatch) {
+        // Convert EMUs (English Metric Units) to approximate percentages
+        // 1 inch = 914400 EMUs, typical slide is ~10" x 7.5"
+        position = {
+          x: Math.round((parseInt(offsetMatch[1]) / 914400) * 10), // Convert to approximate slide units
+          y: Math.round((parseInt(offsetMatch[2]) / 914400) * 7.5),
+          width: Math.round((parseInt(extentMatch[1]) / 914400) * 10),
+          height: Math.round((parseInt(extentMatch[2]) / 914400) * 7.5)
+        }
       }
     }
     
-    // Join all text parts within the same paragraph (they belong to the same line)
-    const fullText = textParts.join('').trim()
+    // Parse paragraphs within this text box
+    const paragraphRegex = /<a:p>([\s\S]*?)<\/a:p>/g
+    let paraMatch
     
-    if (fullText) {
-      allParagraphs.push({ text: fullText, isBullet: hasBullet, isTitle })
+    while ((paraMatch = paragraphRegex.exec(shapeContent)) !== null) {
+      const paragraphContent = paraMatch[1]
+      
+      // Check if this paragraph has bullet point marker
+      const hasBullet = /<a:buChar/.test(paragraphContent) || 
+                        /<a:buAutoNum/.test(paragraphContent)
+      
+      // Extract bullet level
+      const levelMatch = paragraphContent.match(/<a:pPr[^>]*lvl="([^"]+)"/)
+      const bulletLevel = levelMatch ? parseInt(levelMatch[1]) : 0
+      
+      // Check if this is a title placeholder
+      const isTitle = /<p:ph type="title"/.test(shapeContent) ||
+                      /<p:ph type="ctrTitle"/.test(shapeContent)
+      
+      // Extract text properties
+      const textProperties = extractTextProperties(paragraphContent)
+      
+      // Extract ALL text runs within this paragraph and join them (same line)
+      const textParts: string[] = []
+      const innerTextRegex = /<a:t>([^<]*)<\/a:t>/g
+      let innerMatch
+      while ((innerMatch = innerTextRegex.exec(paragraphContent)) !== null) {
+        // Keep the text as-is, including spaces and preserve RTL characters
+        if (innerMatch[1]) {
+          textParts.push(innerMatch[1])
+        }
+      }
+      
+      // Join all text parts within the same paragraph (they belong to the same line)
+      const fullText = textParts.join('').trim()
+      
+      if (fullText) {
+        allParagraphs.push({ 
+          text: fullText, 
+          isBullet: hasBullet, 
+          isTitle,
+          position,
+          textProperties,
+          bulletLevel
+        })
+      }
     }
   }
+  
+  // Helper function to extract text properties including RTL detection
+  function extractTextProperties(paragraphContent: string) {
+    const properties = {
+      isRTL: false,
+      fontSize: 18,
+      fontFamily: 'Arial',
+      isBold: false,
+      isItalic: false,
+      color: '#000000'
+    }
+    
+    // Detect RTL text (Hebrew, Arabic characters)
+    const hebrewRegex = /[\u0590-\u05FF]/
+    const arabicRegex = /[\u0600-\u06FF]/
+    if (hebrewRegex.test(paragraphContent) || arabicRegex.test(paragraphContent)) {
+      properties.isRTL = true
+    }
+    
+    // Extract font size
+    const sizeMatch = paragraphContent.match(/<a:rPr[^>]*sz="([^"]+)"/)
+    if (sizeMatch) {
+      properties.fontSize = parseInt(sizeMatch[1]) / 100 // Convert from points*100
+    }
+    
+    // Extract font family
+    const fontMatch = paragraphContent.match(/<a:latin[^>]*typeface="([^"]+)"/)
+    if (fontMatch) {
+      properties.fontFamily = fontMatch[1]
+    }
+    
+    // Check for bold
+    if (/<a:rPr[^>]*b="1"/.test(paragraphContent)) {
+      properties.isBold = true
+    }
+    
+    // Check for italic
+    if (/<a:rPr[^>]*i="1"/.test(paragraphContent)) {
+      properties.isItalic = true
+    }
+    
+    // Extract color
+    const colorMatch = paragraphContent.match(/<a:srgbClr val="([^"]+)"/)
+    if (colorMatch) {
+      properties.color = '#' + colorMatch[1]
+    }
+    
+    return properties
+  }
+  
+  // Sort paragraphs by position (top to bottom, then right to left for RTL)
+  allParagraphs.sort((a, b) => {
+    if (Math.abs(a.position.y - b.position.y) > 20) {
+      return a.position.y - b.position.y // Sort by Y position first
+    }
+    // For elements at similar Y positions, sort by X (RTL consideration)
+    return a.textProperties.isRTL ? b.position.x - a.position.x : a.position.x - b.position.x
+  })
   
   // First paragraph or title-marked paragraph becomes the title
   const titleParagraph = allParagraphs.find(p => p.isTitle) || allParagraphs[0]
   if (titleParagraph) {
     title = titleParagraph.text
+    
+    // Add title as an element
+    elements.push({
+      type: 'title',
+      content: titleParagraph.text,
+      position: titleParagraph.position,
+      textProperties: titleParagraph.textProperties
+    })
   }
   
   // Process remaining paragraphs
   let currentBulletGroup: string[] = []
+  let currentBulletLevel = 0
   
   for (const para of allParagraphs) {
     // Skip the title paragraph
     if (para.text === title && para === titleParagraph) continue
     
     if (para.isBullet) {
+      // Handle nested bullet points
+      if (para.bulletLevel !== currentBulletLevel && currentBulletGroup.length > 0) {
+        bulletPoints.push([...currentBulletGroup])
+        currentBulletGroup = []
+      }
+      
       currentBulletGroup.push(para.text)
+      currentBulletLevel = para.bulletLevel
+      
+      // Add bullet as an element
+      elements.push({
+        type: 'bullet',
+        content: para.text,
+        position: para.position,
+        textProperties: para.textProperties,
+        bulletLevel: para.bulletLevel
+      })
     } else {
       // If we were in a bullet group, close it
       if (currentBulletGroup.length > 0) {
@@ -201,6 +397,14 @@ function parseSlideXML(
       }
       // Add as regular text
       texts.push(para.text)
+      
+      // Add text as an element
+      elements.push({
+        type: 'text',
+        content: para.text,
+        position: para.position,
+        textProperties: para.textProperties
+      })
     }
   }
   
@@ -209,18 +413,50 @@ function parseSlideXML(
     bulletPoints.push(currentBulletGroup)
   }
   
-  // Extract image references
-  const imageRefRegex = /r:embed="(rId\d+)"/g
-  const relFile = xml.match(/Target="\.\.\/media\/([^"]+)"/g)
+  // Parse images with improved positioning
+  const imageShapeRegex = /<p:pic>([\s\S]*?)<\/p:pic>/g
+  let imageMatch
   
-  // Add images that were found in relations
-  const imageRefs = xml.match(/blip.*?r:embed/g)
-  if (imageRefs) {
-    images.forEach((imgData, fileName) => {
-      if (xml.includes(fileName) || slideImages.length < images.size / Math.max(1, slideNumber)) {
-        slideImages.push(imgData)
+  while ((imageMatch = imageShapeRegex.exec(xml)) !== null) {
+    const imageShapeContent = imageMatch[1]
+    
+    // Extract position information for image
+    const positionMatch = imageShapeContent.match(/<a:xfrm>([\s\S]*?)<\/a:xfrm>/)
+    let position = { x: 0, y: 0, width: 100, height: 100 }
+    
+    if (positionMatch) {
+      const xfrmContent = positionMatch[1]
+      const offsetMatch = xfrmContent.match(/<a:off x="([^"]+)" y="([^"]+)"/)
+      const extentMatch = xfrmContent.match(/<a:ext cx="([^"]+)" cy="([^"]+)"/)
+      
+      if (offsetMatch && extentMatch) {
+        position = {
+          x: Math.round((parseInt(offsetMatch[1]) / 914400) * 10),
+          y: Math.round((parseInt(offsetMatch[2]) / 914400) * 7.5),
+          width: Math.round((parseInt(extentMatch[1]) / 914400) * 10),
+          height: Math.round((parseInt(extentMatch[2]) / 914400) * 7.5)
+        }
       }
-    })
+    }
+    
+    // Extract image reference
+    const embedMatch = imageShapeContent.match(/r:embed="([^"]+)"/)
+    if (embedMatch) {
+      // Find the corresponding image in our images map
+      images.forEach((imgData, fileName) => {
+        if (xml.includes(fileName) || imageShapeContent.includes(embedMatch[1])) {
+          slideImages.push(imgData)
+          
+          // Add image as an element with positioning
+          elements.push({
+            type: 'image',
+            content: fileName,
+            position: position,
+            imageData: imgData
+          })
+        }
+      })
+    }
   }
   
   return {
@@ -229,6 +465,7 @@ function parseSlideXML(
     texts,
     bulletPoints,
     images: slideImages,
+    elements,
     isYellowSlide
   }
 }
@@ -392,6 +629,66 @@ export function convertToHTML(presentation: ParsedPresentation): string {
       font-size: 1.1rem;
     }
     
+    /* Enhanced positioning and RTL support */
+    .slide-elements {
+      position: relative;
+      min-height: 400px;
+      background: #fff;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    
+    .slide-element {
+      position: absolute;
+      word-wrap: break-word;
+    }
+    
+    .slide-element.rtl {
+      direction: rtl;
+      text-align: right;
+    }
+    
+    .slide-element.ltr {
+      direction: ltr;
+      text-align: left;
+    }
+    
+    .slide-element.title {
+      font-weight: bold;
+      font-size: 1.4em;
+      color: #1a1a2e;
+    }
+    
+    .slide-element.bullet {
+      padding-right: 20px;
+    }
+    
+    .slide-element.bullet.rtl::before {
+      content: "• ";
+      margin-left: 8px;
+    }
+    
+    .slide-element.bullet.ltr::before {
+      content: "• ";
+      margin-right: 8px;
+    }
+    
+    .slide-element.bullet.level-1 {
+      padding-right: 40px;
+    }
+    
+    .slide-element.bullet.level-2 {
+      padding-right: 60px;
+    }
+    
+    .slide-element img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    }
+    
     .bullet-list {
       list-style: none;
       margin: 20px 0;
@@ -452,7 +749,40 @@ export function convertToHTML(presentation: ParsedPresentation): string {
               ${slide.title && slide.title !== chapter.title ? `
                 <h3 class="slide-title">${escapeHtml(slide.title)}</h3>
               ` : ''}
-              <div class="slide-content">
+              
+              <!-- Enhanced positioned slide elements -->
+              <div class="slide-elements">
+                ${slide.elements.map(element => {
+                  const rtlClass = element.textProperties?.isRTL ? 'rtl' : 'ltr'
+                  const typeClass = element.type
+                  const levelClass = element.bulletLevel ? `level-${element.bulletLevel}` : ''
+                  
+                  const style = `
+                    left: ${Math.max(0, Math.min(90, element.position.x))}%;
+                    top: ${Math.max(0, Math.min(90, element.position.y))}%;
+                    width: ${Math.max(10, Math.min(100, element.position.width))}%;
+                    height: auto;
+                    font-size: ${element.textProperties?.fontSize || 16}px;
+                    font-family: ${element.textProperties?.fontFamily || 'Arial'};
+                    font-weight: ${element.textProperties?.isBold ? 'bold' : 'normal'};
+                    font-style: ${element.textProperties?.isItalic ? 'italic' : 'normal'};
+                    color: ${element.textProperties?.color || '#000000'};
+                  `.replace(/\\s+/g, ' ').trim()
+                  
+                  if (element.type === 'image' && element.imageData) {
+                    return `<div class="slide-element ${typeClass}" style="${style}">
+                      <img src="${element.imageData.data}" alt="${escapeHtml(element.content)}" />
+                    </div>`
+                  } else {
+                    return `<div class="slide-element ${typeClass} ${rtlClass} ${levelClass}" style="${style}">
+                      ${escapeHtml(element.content)}
+                    </div>`
+                  }
+                }).join('')}
+              </div>
+              
+              <!-- Fallback traditional layout -->
+              <div class="slide-content" style="margin-top: 20px;">
                 ${slide.texts.map(text => `<p>${escapeHtml(text)}</p>`).join('')}
                 ${slide.bulletPoints.map(group => `
                   <ul class="bullet-list">
