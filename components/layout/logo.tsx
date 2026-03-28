@@ -3,96 +3,66 @@ export function Logo({ size = 36 }: { size?: number }) {
     <svg
       width={size}
       height={size}
-      viewBox="0 0 44 34"
+      viewBox="0 0 44 44"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Slide shape - wider with more padding */}
+      {/* Number 2 as the main shape with arrow at top */}
+      {/* The curved top of 2 with arrow tip */}
+      <path
+        d="M12 14C12 9 16 5 22 5C28 5 32 9 32 14C32 18 29 21 25 23L12 33"
+        stroke="hsl(195, 90%, 45%)"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      {/* Bottom line of 2 */}
+      <path
+        d="M12 33H32"
+        stroke="hsl(195, 90%, 45%)"
+        strokeWidth="3"
+        strokeLinecap="round"
+        fill="none"
+      />
+      {/* Arrow at the top of the 2 - pointing up */}
+      <path
+        d="M18 8L22 4L26 8"
+        stroke="hsl(175, 55%, 40%)"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
+      {/* Small presentation/slide icon at bottom left of 2 */}
       <rect
-        x="2"
-        y="2"
-        width="40"
-        height="30"
-        rx="3"
-        stroke="hsl(195, 90%, 55%)"
-        strokeWidth="2"
+        x="4"
+        y="30"
+        width="10"
+        height="8"
+        rx="1"
+        stroke="hsl(195, 70%, 55%)"
+        strokeWidth="1.5"
         fill="white"
       />
-      {/* Text lines on left side */}
-      <rect x="6" y="8" width="8" height="1.6" rx="0.8" fill="hsl(195, 60%, 80%)" />
-      <rect x="6" y="12" width="6" height="1.3" rx="0.65" fill="hsl(195, 50%, 87%)" />
-      <rect x="6" y="15" width="7" height="1.3" rx="0.65" fill="hsl(195, 50%, 87%)" />
-      <rect x="6" y="18" width="5" height="1.3" rx="0.65" fill="hsl(195, 50%, 87%)" />
-      <rect x="6" y="21" width="7" height="1.3" rx="0.65" fill="hsl(195, 50%, 87%)" />
-      <rect x="6" y="24" width="5.5" height="1.3" rx="0.65" fill="hsl(195, 50%, 87%)" />
-      {/* Text lines on right side */}
-      <rect x="30" y="8" width="8" height="1.6" rx="0.8" fill="hsl(195, 60%, 80%)" />
-      <rect x="31" y="12" width="6" height="1.3" rx="0.65" fill="hsl(195, 50%, 87%)" />
-      <rect x="30" y="15" width="7" height="1.3" rx="0.65" fill="hsl(195, 50%, 87%)" />
-      <rect x="31.5" y="18" width="5" height="1.3" rx="0.65" fill="hsl(195, 50%, 87%)" />
-      <rect x="30" y="21" width="7" height="1.3" rx="0.65" fill="hsl(195, 50%, 87%)" />
-      <rect x="31" y="24" width="5.5" height="1.3" rx="0.65" fill="hsl(195, 50%, 87%)" />
-      {/* Upload arrow (the "nose") */}
+      {/* Lines inside presentation */}
+      <line x1="6" y1="33" x2="12" y2="33" stroke="hsl(195, 50%, 75%)" strokeWidth="1" />
+      <line x1="6" y1="35" x2="10" y2="35" stroke="hsl(195, 50%, 75%)" strokeWidth="1" />
+      {/* Course/graduation cap icon at top right */}
       <path
-        d="M22 24V14M19 16.5L22 13l3 3.5"
+        d="M34 10L40 13L34 16L28 13L34 10Z"
+        fill="hsl(175, 55%, 40%)"
+        stroke="hsl(175, 55%, 35%)"
+        strokeWidth="0.5"
+      />
+      {/* Cap tassel */}
+      <path
+        d="M40 13V17"
         stroke="hsl(175, 55%, 40%)"
-        strokeWidth="2"
+        strokeWidth="1.2"
         strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
       />
-      {/* Glasses - lenses sit on both sides of arrow tip */}
-      {/* Left lens */}
-      <circle
-        cx="15.5"
-        cy="18.5"
-        r="3"
-        stroke="#222222"
-        strokeWidth="1.4"
-        fill="none"
-      />
-      {/* Right lens */}
-      <circle
-        cx="28.5"
-        cy="18.5"
-        r="3"
-        stroke="#222222"
-        strokeWidth="1.4"
-        fill="none"
-      />
-      {/* Bridge resting on the arrow "nose" */}
-      <path
-        d="M18.5 17.5C19.5 16.5 24.5 16.5 25.5 17.5"
-        stroke="#222222"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-        fill="none"
-      />
-      {/* Left temple */}
-      <path
-        d="M12.5 18.5H11"
-        stroke="#222222"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-        fill="none"
-      />
-      {/* Right temple */}
-      <path
-        d="M31.5 18.5H33"
-        stroke="#222222"
-        strokeWidth="1.3"
-        strokeLinecap="round"
-        fill="none"
-      />
-      {/* Tray centered below arrow */}
-      <path
-        d="M17.5 26v2h9V26"
-        stroke="hsl(175, 55%, 40%)"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      />
+      <circle cx="40" cy="18" r="1" fill="hsl(175, 55%, 40%)" />
     </svg>
   )
 }
