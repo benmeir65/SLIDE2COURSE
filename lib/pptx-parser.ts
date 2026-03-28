@@ -93,58 +93,64 @@ function parseSlideXML(
     }
   }
   
-  // Extract all text content
-  const textRegex = /<a:t>([^<]*)<\/a:t>/g
-  let match
-  const allTexts: string[] = []
-  
-  while ((match = textRegex.exec(xml)) !== null) {
-    const text = match[1].trim()
-    if (text) {
-      allTexts.push(text)
-    }
-  }
-  
-  // First non-empty text is usually the title
-  if (allTexts.length > 0) {
-    title = allTexts[0]
-    texts.push(...allTexts.slice(1))
-  }
-  
-  // Parse bullet points from paragraph structures
+  // Parse paragraphs - each <a:p> is one line/paragraph in PowerPoint
   const paragraphRegex = /<a:p>([\s\S]*?)<\/a:p>/g
-  let currentBulletGroup: string[] = []
-  let inBulletList = false
+  let match
+  const allParagraphs: { text: string; isBullet: boolean; isTitle: boolean }[] = []
   
   while ((match = paragraphRegex.exec(xml)) !== null) {
     const paragraphContent = match[1]
     
     // Check if this paragraph has bullet point marker
     const hasBullet = /<a:buChar/.test(paragraphContent) || 
-                      /<a:buAutoNum/.test(paragraphContent) ||
-                      /<a:buNone/.test(paragraphContent) === false && /<a:pPr/.test(paragraphContent)
+                      /<a:buAutoNum/.test(paragraphContent)
     
-    // Extract text from paragraph
-    const textInParagraph: string[] = []
+    // Check if this is a title placeholder
+    const isTitle = /<p:ph type="title"/.test(paragraphContent) ||
+                    /<p:ph type="ctrTitle"/.test(paragraphContent)
+    
+    // Extract ALL text runs within this paragraph and join them (same line)
+    const textParts: string[] = []
     const innerTextRegex = /<a:t>([^<]*)<\/a:t>/g
     let innerMatch
     while ((innerMatch = innerTextRegex.exec(paragraphContent)) !== null) {
-      if (innerMatch[1].trim()) {
-        textInParagraph.push(innerMatch[1].trim())
+      // Keep the text as-is, including spaces
+      if (innerMatch[1]) {
+        textParts.push(innerMatch[1])
       }
     }
     
-    if (textInParagraph.length > 0) {
-      const combinedText = textInParagraph.join(' ')
-      if (hasBullet || inBulletList) {
-        currentBulletGroup.push(combinedText)
-        inBulletList = true
+    // Join all text parts within the same paragraph (they belong to the same line)
+    const fullText = textParts.join('').trim()
+    
+    if (fullText) {
+      allParagraphs.push({ text: fullText, isBullet: hasBullet, isTitle })
+    }
+  }
+  
+  // First paragraph or title-marked paragraph becomes the title
+  const titleParagraph = allParagraphs.find(p => p.isTitle) || allParagraphs[0]
+  if (titleParagraph) {
+    title = titleParagraph.text
+  }
+  
+  // Process remaining paragraphs
+  let currentBulletGroup: string[] = []
+  
+  for (const para of allParagraphs) {
+    // Skip the title paragraph
+    if (para.text === title && para === titleParagraph) continue
+    
+    if (para.isBullet) {
+      currentBulletGroup.push(para.text)
+    } else {
+      // If we were in a bullet group, close it
+      if (currentBulletGroup.length > 0) {
+        bulletPoints.push([...currentBulletGroup])
+        currentBulletGroup = []
       }
-    } else if (inBulletList && currentBulletGroup.length > 0) {
-      // End of bullet group
-      bulletPoints.push([...currentBulletGroup])
-      currentBulletGroup = []
-      inBulletList = false
+      // Add as regular text
+      texts.push(para.text)
     }
   }
   
