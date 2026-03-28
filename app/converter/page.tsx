@@ -53,16 +53,21 @@ export default function ConverterPage() {
     setError(null)
     
     try {
+      console.log('[v0] Starting conversion for file:', file.name, 'type:', file.type, 'size:', file.size)
+      
       // Parse the PPTX file
       const presentation = await parsePPTX(file)
+      console.log('[v0] Parsing complete. Slides found:', presentation.slides.length)
       setSlideCount(presentation.slides.length)
       
       // Convert to HTML
       const html = convertToHTML(presentation)
+      console.log('[v0] HTML generated, length:', html.length)
       setConvertedHtml(html)
     } catch (err) {
-      console.error('Conversion error:', err)
-      setError('אירעה שגיאה בהמרת הקובץ. נא לוודא שזהו קובץ PPTX תקין.')
+      console.error('[v0] Conversion error:', err)
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
+      setError(`אירעה שגיאה בהמרת הקובץ: ${errorMessage}`)
     } finally {
       setIsConverting(false)
     }

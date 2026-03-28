@@ -16,8 +16,18 @@ export interface ParsedPresentation {
 
 // Parse PPTX file and extract content
 export async function parsePPTX(file: File): Promise<ParsedPresentation> {
+  console.log('[v0] Starting PPTX parsing for file:', file.name, 'size:', file.size)
+  
   const zip = new JSZip()
-  const contents = await zip.loadAsync(file)
+  let contents
+  
+  try {
+    contents = await zip.loadAsync(file)
+    console.log('[v0] ZIP loaded successfully. Files found:', Object.keys(contents.files).length)
+  } catch (zipError) {
+    console.error('[v0] Failed to load ZIP:', zipError)
+    throw new Error('Failed to load PPTX file as ZIP')
+  }
   
   const slides: SlideContent[] = []
   const images: Map<string, { data: string; contentType: string }> = new Map()
@@ -44,7 +54,10 @@ export async function parsePPTX(file: File): Promise<ParsedPresentation> {
   }
   
   // Find all slide XML files
-  const slideFiles = Object.keys(contents.files)
+  const allFiles = Object.keys(contents.files)
+  console.log('[v0] All files in PPTX:', allFiles.slice(0, 20), '... total:', allFiles.length)
+  
+  const slideFiles = allFiles
     .filter(name => /^ppt\/slides\/slide\d+\.xml$/.test(name))
     .sort((a, b) => {
       const numA = parseInt(a.match(/slide(\d+)/)?.[1] || '0')
@@ -52,11 +65,21 @@ export async function parsePPTX(file: File): Promise<ParsedPresentation> {
       return numA - numB
     })
   
+  console.log('[v0] Slide files found:', slideFiles)
+  
+  if (slideFiles.length === 0) {
+    console.error('[v0] No slide files found in PPTX')
+    throw new Error('No slides found in PPTX file')
+  }
+  
   // Parse each slide
   for (let i = 0; i < slideFiles.length; i++) {
     const slideFile = contents.files[slideFiles[i]]
+    console.log('[v0] Parsing slide:', slideFiles[i])
     const xmlContent = await slideFile.async('string')
+    console.log('[v0] Slide XML length:', xmlContent.length)
     const slideContent = parseSlideXML(xmlContent, i + 1, images)
+    console.log('[v0] Slide parsed:', slideContent.title, 'texts:', slideContent.texts.length)
     slides.push(slideContent)
   }
   
