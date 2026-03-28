@@ -331,8 +331,5 @@ export const navLinks = [
   { href: "/converter", label: "יצירת קורס" },
   { href: "/templates", label: "מדריך תבניות" },
   { href: "/teacher-register", label: "רישום מורה" },
-  { href: "/student-register", label: "רישום תלמיד" },
-  { href: "/classroom", label: "כיתה וציונים" },
-  { href: "/student-dashboard", label: "אזור תלמיד" },
   { href: "/contact", label: "צור קשר" },
 ]
