@@ -3,68 +3,88 @@ export function Logo({ size = 36 }: { size?: number }) {
     <svg
       width={size}
       height={size}
-      viewBox="0 0 48 48"
+      viewBox="0 0 56 48"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      {/* Number 2 as the main shape - acts as arrow from slide to course */}
-      {/* The curved top of 2 */}
+      {/* Number 2 - main central element acting as arrow/transition */}
+      {/* Curved top section of the 2 */}
       <path
-        d="M14 16C14 10 18 6 24 6C30 6 34 10 34 16C34 20 31 23 27 25L14 35"
+        d="M8 14C8 8 13 4 20 4C27 4 32 8 32 14C32 19 28 23 22 26L8 38"
         stroke="hsl(195, 90%, 45%)"
-        strokeWidth="3"
+        strokeWidth="4"
         strokeLinecap="round"
         strokeLinejoin="round"
         fill="none"
       />
-      {/* Bottom line of 2 */}
+      {/* Bottom horizontal line of 2 */}
       <path
-        d="M14 35H34"
+        d="M8 38H32"
         stroke="hsl(195, 90%, 45%)"
-        strokeWidth="3"
+        strokeWidth="4"
         strokeLinecap="round"
-        fill="none"
-      />
-      {/* Arrow tip at the top of the curved 2 - pointing toward course */}
-      <path
-        d="M20 9L24 5L28 9"
-        stroke="hsl(175, 55%, 40%)"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
         fill="none"
       />
 
-      {/* Presentation/slide icon - at bottom right, on the base line of 2, to the right */}
-      <rect
-        x="36"
-        y="31"
-        width="10"
-        height="8"
-        rx="1"
-        stroke="hsl(195, 70%, 55%)"
+      {/* Presentation/Slide icon - bottom right, on baseline of 2, to the right of its edge */}
+      <g transform="translate(34, 32)">
+        {/* Slide frame */}
+        <rect
+          x="0"
+          y="0"
+          width="12"
+          height="9"
+          rx="1.5"
+          stroke="hsl(195, 80%, 50%)"
+          strokeWidth="1.8"
+          fill="white"
+        />
+        {/* Content lines inside slide */}
+        <line x1="2.5" y1="3" x2="9.5" y2="3" stroke="hsl(195, 60%, 65%)" strokeWidth="1.2" strokeLinecap="round" />
+        <line x1="2.5" y1="5.5" x2="7" y2="5.5" stroke="hsl(195, 60%, 65%)" strokeWidth="1.2" strokeLinecap="round" />
+      </g>
+
+      {/* Graduation cap/Course icon - below the curved top of 2, upper right area */}
+      <g transform="translate(34, 8)">
+        {/* Cap top */}
+        <path
+          d="M8 0L16 4L8 8L0 4L8 0Z"
+          fill="hsl(175, 55%, 40%)"
+        />
+        {/* Cap base/band */}
+        <path
+          d="M2 5V9C2 9 5 11 8 11C11 11 14 9 14 9V5"
+          stroke="hsl(175, 55%, 35%)"
+          strokeWidth="1.2"
+          fill="none"
+        />
+        {/* Tassel */}
+        <path
+          d="M16 4V10"
+          stroke="hsl(175, 55%, 40%)"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+        />
+        <circle cx="16" cy="11.5" r="1.2" fill="hsl(175, 55%, 40%)" />
+      </g>
+
+      {/* Small arrow indicators showing flow direction */}
+      {/* Arrow from slide toward 2 */}
+      <path
+        d="M34 36L31 36"
+        stroke="hsl(195, 70%, 60%)"
         strokeWidth="1.5"
-        fill="white"
+        strokeLinecap="round"
+        markerEnd="none"
       />
-      {/* Lines inside presentation */}
-      <line x1="38" y1="34" x2="44" y2="34" stroke="hsl(195, 50%, 65%)" strokeWidth="1" />
-      <line x1="38" y1="36" x2="42" y2="36" stroke="hsl(195, 50%, 65%)" strokeWidth="1" />
-
-      {/* Course/graduation cap icon - below the top curve of 2, on the right */}
+      
+      {/* Arrow from 2 toward course */}
       <path
-        d="M38 16L44 19L38 22L32 19L38 16Z"
-        fill="hsl(175, 55%, 40%)"
-        stroke="hsl(175, 55%, 35%)"
-        strokeWidth="0.5"
-      />
-      {/* Cap tassel */}
-      <path
-        d="M44 19V23"
-        stroke="hsl(175, 55%, 40%)"
-        strokeWidth="1.2"
+        d="M32 12L34 12"
+        stroke="hsl(175, 50%, 50%)"
+        strokeWidth="1.5"
         strokeLinecap="round"
       />
-      <circle cx="44" cy="24" r="1" fill="hsl(175, 55%, 40%)" />
     </svg>
   )
 }
