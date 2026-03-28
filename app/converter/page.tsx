@@ -1,16 +1,18 @@
 "use client"
 
-import type { Metadata } from "next"
 import { useState, useCallback } from "react"
-import { Upload, FileUp, Loader2, Download, Eye } from "lucide-react"
+import { Upload, FileUp, Loader2, Download, Eye, AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { parsePPTX, convertToHTML } from "@/lib/pptx-parser"
 
 export default function ConverterPage() {
   const [file, setFile] = useState<File | null>(null)
   const [isDragging, setIsDragging] = useState(false)
   const [isConverting, setIsConverting] = useState(false)
   const [convertedHtml, setConvertedHtml] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [slideCount, setSlideCount] = useState<number>(0)
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -29,6 +31,9 @@ export default function ConverterPage() {
     if (droppedFile && (droppedFile.name.endsWith('.pptx') || droppedFile.name.endsWith('.ppt'))) {
       setFile(droppedFile)
       setConvertedHtml(null)
+      setError(null)
+    } else {
+      setError('נא להעלות קובץ מצגת בפורמט PPTX או PPT')
     }
   }, [])
 
@@ -37,6 +42,7 @@ export default function ConverterPage() {
     if (selectedFile) {
       setFile(selectedFile)
       setConvertedHtml(null)
+      setError(null)
     }
   }, [])
 
@@ -44,60 +50,28 @@ export default function ConverterPage() {
     if (!file) return
     
     setIsConverting(true)
+    setError(null)
     
-    // Simulate conversion process - in production this would call an API
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
-    // Generate sample HTML course structure
-    const sampleHtml = `
-<!DOCTYPE html>
-<html lang="he" dir="rtl">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>קורס: ${file.name.replace(/\.(pptx?|ppt)$/i, '')}</title>
-  <style>
-    body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-    .slide { border: 1px solid #ddd; padding: 20px; margin: 20px 0; border-radius: 8px; }
-    .slide-title { color: #0ea5e9; font-size: 24px; margin-bottom: 10px; }
-    nav { background: #f5f5f5; padding: 10px; border-radius: 8px; margin-bottom: 20px; }
-    nav a { margin-left: 15px; color: #333; text-decoration: none; }
-    nav a:hover { color: #0ea5e9; }
-  </style>
-</head>
-<body>
-  <nav>
-    <a href="#unit1">יחידה 1</a>
-    <a href="#unit2">יחידה 2</a>
-    <a href="#quiz">שאלות</a>
-  </nav>
-  
-  <section id="unit1" class="slide">
-    <h2 class="slide-title">יחידה 1: מבוא</h2>
-    <p>תוכן השקופית הראשונה יופיע כאן...</p>
-  </section>
-  
-  <section id="unit2" class="slide">
-    <h2 class="slide-title">יחידה 2: תוכן מרכזי</h2>
-    <p>תוכן השקופית השנייה יופיע כאן...</p>
-  </section>
-  
-  <section id="quiz" class="slide">
-    <h2 class="slide-title">שאלות לבדיקה</h2>
-    <p>שאלות אינטראקטיביות יופיעו כאן...</p>
-  </section>
-</body>
-</html>
-`
-    
-    setConvertedHtml(sampleHtml)
-    setIsConverting(false)
+    try {
+      // Parse the PPTX file
+      const presentation = await parsePPTX(file)
+      setSlideCount(presentation.slides.length)
+      
+      // Convert to HTML
+      const html = convertToHTML(presentation)
+      setConvertedHtml(html)
+    } catch (err) {
+      console.error('Conversion error:', err)
+      setError('אירעה שגיאה בהמרת הקובץ. נא לוודא שזהו קובץ PPTX תקין.')
+    } finally {
+      setIsConverting(false)
+    }
   }
 
   const handleDownload = () => {
     if (!convertedHtml) return
     
-    const blob = new Blob([convertedHtml], { type: 'text/html' })
+    const blob = new Blob([convertedHtml], { type: 'text/html;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
     a.href = url
@@ -111,7 +85,7 @@ export default function ConverterPage() {
   const handlePreview = () => {
     if (!convertedHtml) return
     
-    const blob = new Blob([convertedHtml], { type: 'text/html' })
+    const blob = new Blob([convertedHtml], { type: 'text/html;charset=utf-8' })
     const url = URL.createObjectURL(blob)
     window.open(url, '_blank')
   }
@@ -168,11 +142,19 @@ export default function ConverterPage() {
                     או לחץ לבחירת קובץ
                   </p>
                   <p className="mt-2 text-xs text-muted-foreground">
-                    קבצים נתמכים: PPT, PPTX
+                    קבצים נתמכים: PPTX (PowerPoint)
                   </p>
                 </>
               )}
             </div>
+
+            {/* Error Message */}
+            {error && (
+              <div className="mt-4 flex items-center gap-2 rounded-lg bg-red-50 p-3 text-red-700">
+                <AlertCircle className="h-5 w-5" />
+                <p className="text-sm">{error}</p>
+              </div>
+            )}
 
             {/* Convert Button */}
             {file && !convertedHtml && (
@@ -202,6 +184,9 @@ export default function ConverterPage() {
                   <p className="font-medium text-green-800">
                     ההמרה הושלמה בהצלחה!
                   </p>
+                  <p className="text-sm text-green-600">
+                    הומרו {slideCount} שקופיות לקורס HTML
+                  </p>
                 </div>
                 
                 <div className="flex gap-3">
@@ -228,6 +213,7 @@ export default function ConverterPage() {
                   onClick={() => {
                     setFile(null)
                     setConvertedHtml(null)
+                    setSlideCount(0)
                   }}
                 >
                   המר מצגת נוספת
@@ -236,6 +222,17 @@ export default function ConverterPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Instructions */}
+        <div className="mt-8 rounded-lg bg-muted/50 p-6">
+          <h2 className="mb-4 text-lg font-semibold text-foreground">איך זה עובד?</h2>
+          <ul className="space-y-2 text-muted-foreground">
+            <li>1. העלה מצגת PowerPoint (PPTX)</li>
+            <li>2. המערכת תחלץ את כל התוכן: טקסטים, כותרות, בולטים ותמונות</li>
+            <li>3. שקופיות שער צהובות יהפכו לכותרות פרקים בניווט</li>
+            <li>4. הורד את הקורס כקובץ HTML מוכן לשימוש</li>
+          </ul>
+        </div>
       </div>
     </div>
   )
