@@ -35,12 +35,11 @@ function SlidesIllustration() {
         <span className="text-[10px] font-bold text-amber-900">שם היחידה</span>
       </div>
       {/* Question slide - 16:9 with title at top */}
-      <div className="relative flex aspect-video w-full flex-col rounded border border-dashed border-primary/40 bg-primary/10 pt-1">
-        <span className="text-center text-[9px] font-medium text-primary/70">שאלה לפי תבנית</span>
-        <div className="flex flex-1 items-center justify-center">
+      <div className="relative flex aspect-video w-full flex-col rounded border border-dashed border-primary/40 bg-primary/10 px-2 py-2">
+        <span className="text-center text-[9px] font-medium text-foreground">שאלה לפי תבנית</span>
+        <div className="flex flex-1 items-center justify-center pb-2">
           <span className="text-4xl font-bold text-primary">{'?'}</span>
         </div>
-        <div className="h-1" />
       </div>
     </div>
   )
