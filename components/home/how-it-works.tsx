@@ -29,28 +29,21 @@ function UploadIllustration() {
 
 function SlidesIllustration() {
   return (
-    <div className="mt-4 flex w-full flex-col gap-2">
-      {/* Regular slide - square like presentation */}
-      <div className="flex items-center gap-2 rounded-md border border-border bg-card p-1.5">
-        <div className="aspect-[4/3] h-10 flex-shrink-0 rounded bg-muted" />
+    <div className="mt-4 grid w-full grid-cols-2 gap-2">
+      {/* Regular slide 1 - square */}
+      <div className="aspect-[4/3] rounded border border-border bg-muted" />
+      {/* Yellow title slide - square with text */}
+      <div className="flex aspect-[4/3] items-center justify-center rounded bg-amber-400">
+        <span className="text-[8px] font-bold text-amber-900">שם היחידה</span>
       </div>
-      {/* Yellow title slide - full yellow background */}
-      <div className="flex items-center gap-2 rounded-md bg-amber-300 p-1.5">
-        <div className="flex aspect-[4/3] h-10 flex-shrink-0 items-center justify-center rounded bg-amber-400">
-          <span className="text-[7px] font-bold text-amber-900">{'כותרת'}</span>
+      {/* Regular slide 2 - square */}
+      <div className="aspect-[4/3] rounded border border-border bg-muted" />
+      {/* Question slide - square with text above */}
+      <div className="flex flex-col gap-1">
+        <span className="text-[8px] text-primary/70">שאלה לפי תבנית</span>
+        <div className="flex aspect-[4/3] items-center justify-center rounded border border-dashed border-primary/40 bg-primary/10">
+          <span className="text-lg text-primary">{'?'}</span>
         </div>
-        <span className="text-[10px] font-bold text-amber-900">שם היחידה</span>
-      </div>
-      {/* Regular slide - square like presentation */}
-      <div className="flex items-center gap-2 rounded-md border border-border bg-card p-1.5">
-        <div className="aspect-[4/3] h-10 flex-shrink-0 rounded bg-muted" />
-      </div>
-      {/* Question slide */}
-      <div className="flex items-center gap-2 rounded-md border border-dashed border-primary/40 bg-primary/5 p-1.5">
-        <div className="flex aspect-[4/3] h-10 flex-shrink-0 items-center justify-center rounded bg-primary/15">
-          <span className="text-[10px] text-primary">{'?'}</span>
-        </div>
-        <span className="text-[10px] text-primary/70">שאלה לפי תבנית</span>
       </div>
     </div>
   )
