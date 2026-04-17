@@ -750,35 +750,75 @@ export function convertToHTML(presentation: ParsedPresentation): string {
                 <h3 class="slide-title">${escapeHtml(slide.title)}</h3>
               ` : ''}
               
-              <!-- Enhanced positioned slide elements -->
-              <div class="slide-elements">
-                ${slide.elements.map(element => {
-                  const rtlClass = element.textProperties?.isRTL ? 'rtl' : 'ltr'
-                  const typeClass = element.type
-                  const levelClass = element.bulletLevel ? `level-${element.bulletLevel}` : ''
+              <!-- Structured slide layout: Title -> Text/Bullets -> Images -->
+              <div class="slide-structured-content">
+                ${(() => {
+                  // Separate elements by type for structured ordering
+                  const titleElements = slide.elements.filter(el => el.type === 'title')
+                  const textElements = slide.elements.filter(el => el.type === 'text' || el.type === 'bullet')
+                  const imageElements = slide.elements.filter(el => el.type === 'image')
                   
-                  const style = `
-                    left: ${Math.max(0, Math.min(90, element.position.x))}%;
-                    top: ${Math.max(0, Math.min(90, element.position.y))}%;
-                    width: ${Math.max(10, Math.min(100, element.position.width))}%;
-                    height: auto;
-                    font-size: ${element.textProperties?.fontSize || 16}px;
-                    font-family: ${element.textProperties?.fontFamily || 'Arial'};
-                    font-weight: ${element.textProperties?.isBold ? 'bold' : 'normal'};
-                    font-style: ${element.textProperties?.isItalic ? 'italic' : 'normal'};
-                    color: ${element.textProperties?.color || '#000000'};
-                  `.replace(/\\s+/g, ' ').trim()
+                  let content = ''
                   
-                  if (element.type === 'image' && element.imageData) {
-                    return `<div class="slide-element ${typeClass}" style="${style}">
-                      <img src="${element.imageData.data}" alt="${escapeHtml(element.content)}" />
-                    </div>`
-                  } else {
-                    return `<div class="slide-element ${typeClass} ${rtlClass} ${levelClass}" style="${style}">
-                      ${escapeHtml(element.content)}
-                    </div>`
+                  // 1. First show titles
+                  if (titleElements.length > 0) {
+                    content += '<div class="slide-titles">'
+                    titleElements.forEach(element => {
+                      const rtlClass = element.textProperties?.isRTL ? 'rtl' : 'ltr'
+                      content += `<h3 class="slide-element-title ${rtlClass}" style="
+                        font-size: ${Math.max(18, element.textProperties?.fontSize || 20)}px;
+                        font-family: ${element.textProperties?.fontFamily || 'Arial'};
+                        font-weight: bold;
+                        color: ${element.textProperties?.color || '#1a1a2e'};
+                        margin-bottom: 15px;
+                        ${element.textProperties?.isRTL ? 'text-align: right; direction: rtl;' : 'text-align: left; direction: ltr;'}
+                      ">${escapeHtml(element.content)}</h3>`
+                    })
+                    content += '</div>'
                   }
-                }).join('')}
+                  
+                  // 2. Then show text and bullet points
+                  if (textElements.length > 0) {
+                    content += '<div class="slide-text-content">'
+                    textElements.forEach(element => {
+                      const rtlClass = element.textProperties?.isRTL ? 'rtl' : 'ltr'
+                      const bulletPrefix = element.type === 'bullet' ? '• ' : ''
+                      const indent = element.bulletLevel ? (element.bulletLevel * 20) + 'px' : '0'
+                      
+                      content += `<div class="slide-text-element ${rtlClass}" style="
+                        font-size: ${element.textProperties?.fontSize || 16}px;
+                        font-family: ${element.textProperties?.fontFamily || 'Arial'};
+                        font-weight: ${element.textProperties?.isBold ? 'bold' : 'normal'};
+                        font-style: ${element.textProperties?.isItalic ? 'italic' : 'normal'};
+                        color: ${element.textProperties?.color || '#333333'};
+                        margin-bottom: 10px;
+                        ${element.textProperties?.isRTL ? 'text-align: right; direction: rtl; padding-right: ' + indent + ';' : 'text-align: left; direction: ltr; padding-left: ' + indent + ';'}
+                      ">${bulletPrefix}${escapeHtml(element.content)}</div>`
+                    })
+                    content += '</div>'
+                  }
+                  
+                  // 3. Finally show images
+                  if (imageElements.length > 0) {
+                    content += '<div class="slide-images">'
+                    imageElements.forEach(element => {
+                      if (element.imageData) {
+                        content += `<div class="slide-image-container" style="margin: 15px 0;">
+                          <img src="${element.imageData.data}" alt="${escapeHtml(element.content)}" 
+                               class="slide-structured-image" style="
+                                 max-width: 100%;
+                                 height: auto;
+                                 border-radius: 8px;
+                                 box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                               " />
+                        </div>`
+                      }
+                    })
+                    content += '</div>'
+                  }
+                  
+                  return content
+                })()}
               </div>
               
               <!-- Fallback traditional layout -->
